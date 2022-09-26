@@ -1,5 +1,5 @@
-<template>
-  <h1>{{ today }}</h1>
+<template >
+  <h1 @keyup.meta.z="redo">{{ today }}</h1>
   <div class="details">
     <small
       ><strong>{{ todos.filter((todo) => !todo.done).length }}</strong>
@@ -21,20 +21,18 @@
     <div
       class="todo"
       v-for="todo in this.todos.filter((todo) => !todo.done)"
-      :key="todo.title"
+      :key="todo.id"
       v-motion
-      :initial="{
-        opacity: 0,
-      }"
-      :enter="{
-        opacity: 1,
-      }"
     >
       <div>
         <input type="checkbox" v-model="todo.done" />
         {{ todo.title }}
       </div>
-      <div>{{ todo.estimation }}min</div>
+      <div class="estimation" @click="() => openEstimationPopUp(todo.id)">{{ todo.estimation }}min
+        <div v-if="editTodoEstimationId === todo.id" class="estimation-popup" @click.stop >
+          <input type="number" placeholder="Enter a new estimation" />
+        </div>
+      </div>
     </div>
     </TransitionGroup>
   </section>
@@ -42,6 +40,7 @@
 
 <script>
 import dayjs from "dayjs";
+import { nanoid } from "nanoid";
 
 export default {
   name: "App",
@@ -49,7 +48,9 @@ export default {
     return {
       newTodo: "",
       today: dayjs().format("dddd MMM, YYYY"),
+      todoHistory: [],
       todos: JSON.parse(window.localStorage.getItem("todos")) || [],
+      editTodoEstimationId: null,
     };
   },
   computed: {
@@ -81,10 +82,29 @@ export default {
       }
       this.todos = [
         ...this.todos,
-        { done: false, title: splitTitle[0] || "New Task", estimation: time },
+        { done: false, title: splitTitle[0] || "New Task", estimation: time, id: nanoid() },
       ];
       this.newTodo = "";
     },
+    redo() {
+      console.log("redooo")
+    },
+    openEstimationPopUp(todoId) {
+      if (this.editTodoEstimationId !== null) {
+        this.editTodoEstimationId = null;
+      } else {
+        this.editTodoEstimationId = todoId;
+      }
+    },
+    editEstimation(todoId, newEstimation) {
+      this.todos = [...this.todos.map(todo => {
+        if (todo.id === todoId) {
+          return {...todo, estimation: newEstimation}
+        } else {
+          return todo;
+        }
+      })]
+    }
   },
 };
 </script>
@@ -121,20 +141,19 @@ export default {
   align-items: center;
 }
 
-.list-move, /* apply transition to moving elements */
+.list-move, 
+.list-enter-active,
 .list-leave-active {
-  transition: all 0.3s ease;
+  transition: all 0.5s ease;
 }
 
-
-.list-enter-active {
-  transition: all 0.5s ease;
+.list-move {
+  transition-delay: 250ms;
 }
 
 .list-enter-from,
 .list-leave-to {
   opacity: 0;
-  transform: translateX(30px);
 }
 
 /* ensure leaving items are taken out of layout flow so that moving
@@ -142,4 +161,15 @@ export default {
 .list-leave-active {
   position: absolute;
 }
+
+.estimation {
+  cursor: pointer;
+  position: relative;
+}
+
+.estimation-popup {
+  /*position: absolute;
+  top: 25px;
+  z-index: 5;
+*/}
 </style>
